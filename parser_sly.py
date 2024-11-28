@@ -30,10 +30,11 @@ class Mparser(Parser):
     def statements(self, p):
         return p[0]
 
-    # @_("if_statement")
-    @_('one_line_statement')
     @_('for_loop')
     @_('while_loop')
+    @_('assignment ";"')
+    @_('print_statement ";"')
+    @_('keyword_statement ";"')
     @_('block')
     def instruction(self, p):
         return p[0]
@@ -45,24 +46,20 @@ class Mparser(Parser):
     @_('if_statement')
     @_('for_loop')
     @_('while_loop')
-    @_('one_line_statement')
-    def statement(self, p):
-        return p[0]
-
     @_('assignment ";"')
     @_('print_statement ";"')
     @_('keyword_statement ";"')
-    def one_line_statement(self, p):
+    def statement(self, p):
         return p[0]
 
     @_("IF '(' condition ')' instruction else_part")
     @_("IF '(' condition ')' instruction empty")
+    @_("IF '(' condition ')' if_statement")  # nested if without {}, can't have else_part
     def if_statement(self, p):
         return p[0]
 
     @_("ELSE instruction")
-    @_("ELSE IF '(' condition ')' instruction else_part")
-    @_("ELSE IF '(' condition ')' instruction empty")
+    @_("ELSE if_statement")
     def else_part(self, p):
         return p[0]
 
