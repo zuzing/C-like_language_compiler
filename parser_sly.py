@@ -22,25 +22,15 @@ class Mparser(Parser):
 
     @_('statements')
     def program(self, p):
-        return p[0]
+        return AST.Program(p[0])
 
     @_('statement')
     @_('statement statements')
+    def statements(self, p):
+        return p[0] if len(p) == 1 else ([p[0]] + p[1] if isinstance(p[1], list) else [p[0], p[1]])
+
     @_('block')
     def statements(self, p):
-        return p[0]
-
-    @_('for_loop')
-    @_('while_loop')
-    @_('assignment ";"')
-    @_('print_statement ";"')
-    @_('keyword_statement ";"')
-    @_('block')
-    def instruction(self, p):
-        return p[0]
-
-    @_(" '{' statements '}'")
-    def block(self, p):
         return p[0]
 
     @_('if_statement')
@@ -52,53 +42,64 @@ class Mparser(Parser):
     def statement(self, p):
         return p[0]
 
+    # statement without if_statement
+    @_('for_loop')
+    @_('while_loop')
+    @_('assignment ";"')
+    @_('print_statement ";"')
+    @_('keyword_statement ";"')
+    @_('block')
+    def instruction(self, p):
+        return p[0]
+
+    @_(" '{' statements '}'")
+    def block(self, p):
+        return p[1]
+
     @_("IF '(' condition ')' instruction else_part")
     @_("IF '(' condition ')' instruction empty")
     @_("IF '(' condition ')' if_statement")  # nested if without {}, can't have else_part
     def if_statement(self, p):
-        return p[0]
+        return AST.Ifstatement(p[2], p[4], p[5] if len(p) > 5 else None)
+
 
     @_("ELSE instruction")
     @_("ELSE if_statement")
     def else_part(self, p):
-        return p[0]
+        return AST.Instruction(p[0], p[1])
 
     @_("")
     def empty(self, p):
         return None
 
-    # @_('ID assign_operator expr')
-    # @_("ID list assign_operator expr")
     @_('ID ADD expr')
     @_('ID SUBTRACT expr')
     @_('ID MULTIPLY_BY expr')
     @_('ID DIVIDE_BY expr')
     @_('ID ASSIGN expr')
-    @_('ID list ADD expr')
-    @_('ID list SUBTRACT expr')
-    @_('ID list MULTIPLY_BY expr')
-    @_('ID list DIVIDE_BY expr')
-    @_('ID list ASSIGN expr')
-    @_("ID '=' STRING")
+    @_('reference ADD expr')
+    @_('reference SUBTRACT expr')
+    @_('reference MULTIPLY_BY expr')
+    @_('reference DIVIDE_BY expr')
+    @_('reference ASSIGN expr')
     def assignment(self, p):
-        return p[0]
+        return AST.Assignment(p[0], p[1], p[2])
 
     @_("FOR ID ASSIGN range_expr instruction")
     def for_loop(self, p):
-        return p[0]
+        return AST.Instruction(p[0], p[1], p[3], p[4])
 
     @_('INTEGER RANGE INTEGER')
     @_("ID RANGE ID")
     @_("INTEGER RANGE ID")
     def range_expr(self, p):
-        return p[0]
+        return AST.Range(p[0], p[2])
 
     @_("WHILE '(' condition ')' instruction")
     def while_loop(self, p):
-        return p[0]
+        return AST.Instruction(p[0], p[2], p[4])
 
     @_("PRINT terms")
-    @_("PRINT STRING")
     def print_statement(self, p):
         return AST.Instruction(p[0], p[1])
 
@@ -114,68 +115,93 @@ class Mparser(Parser):
     @_('expr GE expr')
     @_('expr GT expr')
     @_('expr NE expr')
+    def condition(self, p):
+        return AST.BinaryOperation(p[1], p[0], p[2])
+
     @_("'(' condition ')'")
     def condition(self, p):
-        return AST.Condition(p[1], p[0], p[2])
+        return p[1]
 
     @_('term')
     @_('arithmetic_expr')
     @_('matrix_expr')
-    @_('"-" expr %prec UMINUS')
-    @_("'(' expr ')'")
     def expr(self, p):
         return p[0]
+
+    @_('"-" expr %prec UMINUS')
+    def expr(self, p):
+        return AST.UnaryOperation(p[0], p[1])
+
+    @_("'(' expr ')'")
+    def expr(self, p):
+        return p[1]
 
     @_('expr "+" expr')
     @_('expr "-" expr')
     @_("expr '*' expr")
     @_("expr '/' expr")
     def arithmetic_expr(self, p):
-        return AST.BinExpr(p[1], p[0], p[2])
+        return AST.BinaryOperation(p[1], p[0], p[2])
 
     @_('expr MATRIX_PLUS expr')
     @_('expr MATRIX_MINUS expr')
     @_('expr MATRIX_MUL expr')
     @_('expr MATRIX_DIV expr')
     def matrix_expr(self, p):
-        return AST.BinExpr(p[1], p[0], p[2])
+        return AST.BinaryOperation(p[1], p[0], p[2])
 
     @_("EYE '(' INTEGER ')'")
     @_("ZEROS '(' INTEGER ')'")
     @_("ONES '(' INTEGER ')' ")
+    def MATRIX(self, p):
+        return AST.Instruction(p[0], p[2])
+
     @_('MATRIX TRANSPOSE')
     def MATRIX(self, p):
-        return p[0]
+        return AST.UnaryOperation(p[1], p[0])
 
     @_(" '[' terms ']' ")
     def list(self, p):
-        return p[0]
+        return AST.Vector(p[1])
 
     @_("term")
-    @_("terms ',' term")
+    @_("term ',' terms")
     def terms(self, p):
-        return p[0]
+        return p[0] if len(p) == 1 else ([p[0]] + p[2] if isinstance(p[2], list) else [p[0], p[2]])
 
-
+    @_("STRING")
+    @_('reference')
     @_('numeric')
     @_('list')
     @_('MATRIX')
-    @_("ID TRANSPOSE")
     def term(self, p):
         return p[0]
 
-    @_('ID list')
+    @_("ID TRANSPOSE")
     def term(self, p):
-        return AST.Adnotation(p[0], p[1])
+        return AST.UnaryOperation(p[1], AST.Variable(p[0]))
 
     @_('ID')
     def term(self, p):
         return AST.Variable(p[0])
 
+    @_('ID list')
+    def reference(self, p):
+        return AST.Reference(p[0], p[1])
+
     @_('INTEGER')
     @_('FLOAT')
     def numeric(self, p):
         return AST.Numeric(p[0])
+
+    def error(self, p):
+        if p:
+            raise Exception(
+                f"Syntax error at line {p.lineno}: Unexpected token '{p.value}'")
+        else:
+            raise Exception(
+                f"Syntax error at end of input")
+
 
     # @_('ADD')
     # @_('SUBTRACT')

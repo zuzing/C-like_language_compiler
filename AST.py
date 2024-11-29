@@ -1,12 +1,59 @@
-
-
 class Node(object):
     pass
 
 
-class Numeric(Node):
-    def __init__(self, value):
-        self.value = value
+class Program(Node):
+    def __init__(self, instructions):
+        self.instructions = instructions
+
+
+class Instruction(Node):
+    def __init__(self, instruction, *args):
+        self.instruction = instruction
+        self.args = args
+
+
+class Ifstatement(Node):
+    def __init__(self, condition, instruction, elsepart):
+        self.condition = condition
+        self.instruction = instruction
+        self.elsepart = elsepart
+
+
+class Range(Node):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+class Assignment(Node):
+    def __init__(self, var, symbol, expr):
+        self.id = var
+        self.symbol = symbol
+        self.expr = expr
+
+
+class BinaryOperation(Node):
+    def __init__(self, op, left, right):
+        self.op = op
+        self.left = left
+        self.right = right
+
+
+class UnaryOperation(Node):
+    def __init__(self, op, operand):
+        self.op = op
+        self.operand = operand
+
+
+class Vector(Node):
+    def __init__(self, elements):
+        self.elements = elements
+
+
+class Reference(Node):
+    def __init__(self, name, index):
+        self.name = name
+        self.index = index
 
 
 class Variable(Node):
@@ -14,31 +61,9 @@ class Variable(Node):
         self.name = name
 
 
-class BinExpr(Node):
-    def __init__(self, op, left, right):
-        self.op = op
-        self.left = left
-        self.right = right
-
-
-class Adnotation(Node):
-    def __init__(self, var, adnotation):
-        self.id = var
-        self.adnotation = adnotation
-
-
-class Condition(Node):
-    def __init__(self, sign, left, right):
-        self.op = sign
-        self.left = left
-        self.right = right
-
-
-class Instruction(Node):
-    def __init__(self, instruction, args=None):
-        self.instruction = instruction
-        self.args = args
-
+class Numeric(Node):
+    def __init__(self, value):
+        self.value = value
 
 
 class Error(Node):
