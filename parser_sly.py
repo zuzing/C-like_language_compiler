@@ -8,16 +8,15 @@ class Mparser(Parser):
     debugfile = 'parser.out'
 
     precedence = (  # tokens are ordered from lowest to highest precedence
-        ("left", 'ASSIGN'),
         ("left", 'LT', 'GT'),
         ("left", 'EQ', 'NE', 'GE', 'LE'),
         ("left", "+", "-"),
         ("left", 'MATRIX_PLUS', 'MATRIX_MINUS'),
-        ("left", 'ADD', 'SUBTRACT'),
         ("left", "*", "/"),
         ("left",  'MATRIX_MUL', 'MATRIX_DIV'),
-        ("left", 'MULTIPLY_BY', 'DIVIDE_BY'),
         ("left", 'UMINUS'),
+        ("nonassoc", 'IFX'),
+        ("nonassoc", 'ELSE')
     )
 
     @_('statements')
@@ -29,48 +28,25 @@ class Mparser(Parser):
     def statements(self, p):
         return p[0] if len(p) == 1 else ([p[0]] + p[1] if isinstance(p[1], list) else [p[0], p[1]])
 
-    @_('block')
-    def statements(self, p):
-        return p[0]
-
     @_('if_statement')
     @_('for_loop')
     @_('while_loop')
     @_('assignment ";"')
     @_('print_statement ";"')
     @_('keyword_statement ";"')
-    def statement(self, p):
-        return p[0]
-
-    # statement without if_statement
-    @_('for_loop')
-    @_('while_loop')
-    @_('assignment ";"')
-    @_('print_statement ";"')
-    @_('keyword_statement ";"')
     @_('block')
-    def instruction(self, p):
+    def statement(self, p):
         return p[0]
 
     @_(" '{' statements '}'")
     def block(self, p):
         return p[1]
 
-    @_("IF '(' condition ')' instruction else_part")
-    @_("IF '(' condition ')' instruction empty")
-    @_("IF '(' condition ')' if_statement")  # nested if without {}, can't have else_part
+    @_("IF '(' condition ')' statement %prec IFX")
+    @_("IF '(' condition ')' statement ELSE statement")
     def if_statement(self, p):
-        return AST.Ifstatement(p[2], p[4], p[5] if len(p) > 5 else None)
+        return AST.Ifstatement(p[2], p[4], p[6] if len(p) > 5 else None)
 
-
-    @_("ELSE instruction")
-    @_("ELSE if_statement")
-    def else_part(self, p):
-        return AST.Instruction(p[0], p[1])
-
-    @_("")
-    def empty(self, p):
-        return None
 
     @_('ID ADD expr')
     @_('ID SUBTRACT expr')
@@ -85,7 +61,7 @@ class Mparser(Parser):
     def assignment(self, p):
         return AST.Assignment(p[0], p[1], p[2])
 
-    @_("FOR ID ASSIGN range_expr instruction")
+    @_("FOR ID ASSIGN range_expr statement")
     def for_loop(self, p):
         return AST.Instruction(p[0], p[1], p[3], p[4])
 
@@ -95,7 +71,7 @@ class Mparser(Parser):
     def range_expr(self, p):
         return AST.Range(p[0], p[2])
 
-    @_("WHILE '(' condition ')' instruction")
+    @_("WHILE '(' condition ')' statement")
     def while_loop(self, p):
         return AST.Instruction(p[0], p[2], p[4])
 
@@ -117,10 +93,6 @@ class Mparser(Parser):
     @_('expr NE expr')
     def condition(self, p):
         return AST.BinaryOperation(p[1], p[0], p[2])
-
-    @_("'(' condition ')'")
-    def condition(self, p):
-        return p[1]
 
     @_('term')
     @_('arithmetic_expr')

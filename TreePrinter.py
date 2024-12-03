@@ -66,7 +66,8 @@ class TreePrinter:
         print(TreePrinter.indent_text("THEN", indent))
         TreePrinter.print(self.instruction, indent+1)
         if self.elsepart:
-            TreePrinter.print(self.elsepart, indent)
+            print(TreePrinter.indent_text("ELSE", indent))
+            TreePrinter.print(self.elsepart, indent+1)
 
 
     @addToClass(AST.Range)
