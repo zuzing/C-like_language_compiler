@@ -31,16 +31,15 @@ class TreePrinter:
 
     @staticmethod
     def print(obj, indent_level):
-        """Helper to print either a Node or a literal value."""
-        if isinstance(obj, list):
+        """Helper to print either a Node, content of a list (or tuple) or a literal value."""
+        if isinstance(obj, AST.Node):
+            obj.printTree(indent_level)
+        elif isinstance(obj, (list, tuple)):
             for elem in obj:
                 TreePrinter.print(elem, indent_level)
-        elif isinstance(obj, AST.Node):
-            obj.printTree(indent_level)
-        else:
+        else:  # literal value
             transformed_obj = TreePrinter.keyword_mapping.get(obj, obj)
             print(TreePrinter.indent_text(f"{transformed_obj}", indent_level))
-            # print(TreePrinter.indent_text(f"{obj}", indent_level))
 
     @addToClass(AST.Node)
     def printTree(self, indent=0):

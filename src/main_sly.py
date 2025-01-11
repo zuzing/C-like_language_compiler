@@ -2,6 +2,7 @@ import sys
 from scanner_sly import Scanner
 from parser_sly import Mparser
 from TreePrinter import TreePrinter
+from NodeVisitor import NodeVisitor
 
 
 if __name__ == '__main__':
@@ -20,3 +21,6 @@ if __name__ == '__main__':
 
     ast = parser.parse(lexer.tokenize(text))
     ast.printTree()
+
+    node_visitor = NodeVisitor()
+    node_visitor.visit(ast)

@@ -61,6 +61,8 @@ class Mparser(Parser):
     def assignment(self, p):
         return AST.Assignment(p[0], p[1], p[2])
 
+
+
     @_("FOR ID ASSIGN range_expr statement")
     def for_loop(self, p):
         return AST.Instruction(p[0], p[1], p[3], p[4])
