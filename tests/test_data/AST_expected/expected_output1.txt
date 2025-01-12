@@ -1,14 +1,14 @@
 =
 |  A
-|  zeros
+|  ZEROS
 |  |  5
 =
 |  B
-|  ones
+|  ONES
 |  |  7
 =
 |  I
-|  eye
+|  EYE
 |  |  10
 =
 |  E1

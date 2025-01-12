@@ -1,5 +1,5 @@
 import AST
-from SymbolTable import SymbolTable, VectorVariableSymbol, VariableSymbol, Symbol, UNKNOWN
+from SymbolTable import SymbolTable, VectorType, VariableSymbol, TYPE
 
 class NodeVisitor(object):
     def __init__(self):
@@ -42,22 +42,23 @@ class NodeVisitor(object):
         var_name = node.id.name
         var_symbol = self.symbol_table.get(var_name)
         if node.op == '=':
+            type_ = self.visit(node.expr)
             if var_symbol is None:
-                self.symbol_table.put(VariableSymbol(name=var_name, type_=UNKNOWN))
-            self.visit(node.expr)
+                self.symbol_table.put(VariableSymbol(name=var_name, type_=type_))
         else:
             if var_symbol is None:
                 raise Exception(f"Undefined variable: {var_name}")
-            self.visit(node.expr)
-            self.visit(AST.BinaryOperation(TRANSLATION_TABLE[node.op], AST.Variable(var_name), node.expr))
+            type_ = self.visit(AST.BinaryOperation(TRANSLATION_TABLE[node.op], AST.Variable(var_name), node.expr))
+            self.symbol_table.get(var_name).type = type_
 
 
     def visit_Variable(self, node):
         if self.symbol_table.get(node.name) is None:
             raise Exception(f"Undefined variable: {node.name}")
+        return self.symbol_table.get(node.name).type
 
 
-    def visit_BinaryOperation(self, node):
+    def visit_BinaryOperation(self, node) -> TYPE:
         MATRIX_OPERATIONS = {
             ('.+', AST.Vector, AST.Vector): AST.Vector,
             ('.-', AST.Vector, AST.Vector): AST.Vector,
@@ -82,18 +83,20 @@ class NodeVisitor(object):
              **MATRIX_OPERATIONS,
         }
 
-        def check_vector_shapes(op: str, left_vector: AST.Vector, right_vector: AST.Vector):
+        def vector_shapes(op: str, left_vector: AST.Vector, right_vector: AST.Vector) -> VectorType:
             left_shape = left_vector.shape()
             right_shape = right_vector.shape()
 
             if op == '*':
                 if len(left_shape) > 2 or len(right_shape) > 2:
                     raise Exception(f"Matrix multiplication is only supported for 2D matrices: {left_shape} {right_shape}")
-                if len(left_shape) != len(right_shape) or left_shape[-1] != right_shape[0]:
+                if len(left_shape) != len(right_shape) or left_shape[1] != right_shape[0]:
                     raise Exception(f"Vector dimensions must agree: {left_shape} != {right_shape}")
+                return VectorType(shape=(left_shape[0], right_shape[1]))
             else:
                 if left_shape != right_shape:
                     raise Exception(f"Vector dimensions must agree: {left_shape} != {right_shape}")
+                return VectorType(shape=left_shape)
 
         self.visit(node.left)
         self.visit(node.right)
@@ -111,12 +114,13 @@ class NodeVisitor(object):
         operation = (node.op, left_type, right_type)
         if operation in ALLOWED_OPERATIONS.keys():
             if operation in MATRIX_OPERATIONS.keys():
-                check_vector_shapes(node.op, node.left, node.right)
+                return vector_shapes(node.op, node.left, node.right)
+            return ALLOWED_OPERATIONS[operation]
         else:
             raise Exception(f"Unsupported operation: {left_type} {node.op} {right_type}")
 
 
-    def visit_UnaryOperation(self, node):
+    def visit_UnaryOperation(self, node) -> TYPE:
         self.visit(node.operand)
 
         ALLOWED_OPERATIONS = {
@@ -135,8 +139,10 @@ class NodeVisitor(object):
         if operation not in ALLOWED_OPERATIONS.keys():
             raise Exception(f"Unsupported operation: {node.op} {node.operand.__class__.__name__}")
 
+        return ALLOWED_OPERATIONS[operation]
 
-    def visit_Reference(self, node):
+
+    def visit_Reference(self, node) -> TYPE:
         self.visit(node.id)
         self.visit(node.index)
 
@@ -145,16 +151,21 @@ class NodeVisitor(object):
         if id.type is AST.Vector:
             if len(node.index) > len(id.shape):
                 raise Exception(f"Index out of bounds: {node.id} {node.index}")
-            for i in range(len(id.shape)):
+            for i in range(len(id.shape)):  # check if indexes are integers and within bounds
                 if not isinstance(node.index[i], int):
                     raise Exception(f"Indexes must be an integers: {node.id} {node.index}")
                 if node.index[i] < 0 or node.index[i] >= id.shape[i]:
                     raise Exception(f"Index out of bounds: {node.id} {node.index}")
+
+            if len(node.index) == len(id.shape):
+                return AST.Numeric
+            else:
+                return AST.Vector
         else:
             raise Exception(f"Variable is not a vector: {node.id}")
 
 
-    def visit_Instruction(self, node):
+    def visit_Instruction(self, node) -> TYPE or None:
         ALLOWED_ARGUMENT_TYPES = {
             'EYE': [int],
             'ZEROS': [int],

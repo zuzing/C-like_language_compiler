@@ -27,19 +27,20 @@ class TreePrinter:
     @staticmethod
     def indent_text(text, indent):
         """Helper function to generate indented text."""
-        return "| " * indent + text
+        return "|  " * indent + text
 
     @staticmethod
     def print(obj, indent_level):
         """Helper to print either a Node, content of a list (or tuple) or a literal value."""
         if isinstance(obj, AST.Node):
             obj.printTree(indent_level)
-        elif isinstance(obj, (list, tuple)):
+        elif isinstance(obj, list):
             for elem in obj:
                 TreePrinter.print(elem, indent_level)
         else:  # literal value
             transformed_obj = TreePrinter.keyword_mapping.get(obj, obj)
-            print(TreePrinter.indent_text(f"{transformed_obj}", indent_level))
+            indented_text = TreePrinter.indent_text(f"{transformed_obj}", indent_level)
+            print(indented_text)
 
     @addToClass(AST.Node)
     def printTree(self, indent=0):
@@ -54,8 +55,11 @@ class TreePrinter:
     @addToClass(AST.Instruction)
     def printTree(self, indent=0):
         TreePrinter.print(self.instruction, indent)
-        for arg in self.args:
-            TreePrinter.print(arg, indent + 1)
+        if not isinstance(self.args, tuple):
+            TreePrinter.print(self.args, indent+1)
+        else:
+            for arg in self.args:
+                TreePrinter.print(arg, indent + 1)
 
 
     @addToClass(AST.Ifstatement)
@@ -78,7 +82,7 @@ class TreePrinter:
 
     @addToClass(AST.Assignment)
     def printTree(self, indent=0):
-        print(TreePrinter.indent_text(f"{self.symbol}", indent))
+        print(TreePrinter.indent_text(f"{self.op}", indent))
         TreePrinter.print(self.id, indent + 1)
         TreePrinter.print(self.expr, indent + 1)
 
@@ -105,7 +109,10 @@ class TreePrinter:
     def printTree(self, indent=0):
         print(TreePrinter.indent_text("REF", indent))
         TreePrinter.print(self.name, indent+1)
-        TreePrinter.print(self.index, indent+1)
+        try:
+            TreePrinter.print(self.index.elements, indent+1)  # index is a Vector, by accessing its elements we can omit printing VECTOR, making AST more readable
+        except AttributeError:
+            raise Exception("Index can only be a 1D Vector")
 
     @addToClass(AST.Variable)
     def printTree(self, indent=0):
@@ -113,6 +120,11 @@ class TreePrinter:
 
 
     @addToClass(AST.Numeric)
+    def printTree(self, indent=0):
+        print(TreePrinter.indent_text(f"{self.value}", indent))
+
+
+    @addToClass(AST.String)
     def printTree(self, indent=0):
         print(TreePrinter.indent_text(f"{self.value}", indent))
 

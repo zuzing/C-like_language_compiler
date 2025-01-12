@@ -1,6 +1,6 @@
 import sys
-from scanner_sly import Scanner
-from parser_sly import Mparser
+from Scanner import Scanner
+from Mparser import Mparser
 from TreePrinter import TreePrinter
 from NodeVisitor import NodeVisitor
 
@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     try:
         # filename = sys.argv[1] if len(sys.argv) > 1 else "example.txt"
-        filename = "./AST_example/example3.txt"
+        filename = "./example1.txt"
         file = open(filename, "r")
     except IOError:
         print("Cannot open {0} file".format(filename))

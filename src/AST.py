@@ -1,55 +1,58 @@
+from __future__ import annotations
+from dataclasses import dataclass
+
+
 class Node(object):
     pass
 
 
+@dataclass
 class Program(Node):
-    def __init__(self, instructions):
-        self.instructions = instructions
+    instructions: list
 
 
+@dataclass
 class Instruction(Node):
-    def __init__(self, instruction, *args):
-        self.instruction = instruction
-        self.args = args
+    instruction: str
+    args: tuple
 
 
+@dataclass
 class Ifstatement(Node):
-    def __init__(self, condition, instruction, elsepart):
-        self.condition = condition
-        self.instruction = instruction
-        self.elsepart = elsepart
+    condition: Node
+    instruction: Node
+    elsepart: Node
 
 
+@dataclass
 class Range(Node):
-    def __init__(self, start, end):
-        self.start = start
-        self.end = end
+    start: int
+    end: int
 
 
+@dataclass
 class Assignment(Node):
-    def __init__(self, var, symbol, expr):
-        self.id = var
-        self.symbol = symbol
-        self.expr = expr
+    id: str | Node
+    op: str
+    expr: Node
 
 
+@dataclass
 class BinaryOperation(Node):
-    def __init__(self, op, left, right):
-        self.op = op
-        self.left = left
-        self.right = right
+    op: str
+    left: Node
+    right: Node
 
 
+@dataclass
 class UnaryOperation(Node):
-    def __init__(self, op, operand):
-        self.op = op
-        self.operand = operand
+    op: str
+    operand: Node
 
 
-class Vector(Node, list):
-    def __init__(self, elements):
-        super().__init__()
-        self.elements = elements
+@dataclass
+class Vector(Node):
+    elements: list
 
     def shape(self) -> tuple:
         shape = [len(self.elements)]
@@ -85,23 +88,31 @@ class Vector(Node, list):
         return shape
 
 
+@dataclass
 class Reference(Node):
-    def __init__(self, name, index):
-        self.name = name
-        self.index = index
+    name: str
+    index: Vector
 
 
+@dataclass
 class Variable(Node):
-    def __init__(self, name):
-        self.name = name
+    name: str
 
 
+@dataclass
 class Numeric(Node):
-    def __init__(self, value):
-        self.value = value
+    value: int | float
+
+    def __eq__(self, other):
+        if isinstance(other, Numeric):
+            return self.value == other.value
+        return self.value == other
+
+
+@dataclass
+class String(Node):
+    value: str
 
 
 class Error(Node):
-    def __init__(self):
-        pass
-      
+    pass

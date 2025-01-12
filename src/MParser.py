@@ -1,11 +1,29 @@
 from sly import Parser
-from scanner_sly import Scanner
+from Scanner import Scanner
 import AST
 
 
 class Mparser(Parser):
     tokens = Scanner.tokens
-    debugfile = 'parser.out'
+
+    debugfile = None
+
+    @classmethod
+    def debug(cls, debugfile: str):
+        cls.debugfile = debugfile
+        if hasattr(cls, '_grammar') and hasattr(cls, '_lrtable'):
+            cls._apply_debugfile()
+
+    @classmethod
+    def _apply_debugfile(cls):
+        if cls.debugfile:
+            with open(cls.debugfile, 'w') as f:
+                f.write(str(cls._grammar))
+                f.write('\n')
+                f.write(str(cls._lrtable))
+            cls.log.info('Parser debugging for %s written to %s', cls.__qualname__, cls.debugfile)
+
+
 
     precedence = (  # tokens are ordered from lowest to highest precedence
         ("left", 'LT', 'GT'),
@@ -58,6 +76,7 @@ class Mparser(Parser):
     @_('reference MULTIPLY_BY expr')
     @_('reference DIVIDE_BY expr')
     @_('reference ASSIGN expr')
+    @_('ID ASSIGN string')
     def assignment(self, p):
         return AST.Assignment(p[0], p[1], p[2])
 
@@ -65,7 +84,7 @@ class Mparser(Parser):
 
     @_("FOR ID ASSIGN range_expr statement")
     def for_loop(self, p):
-        return AST.Instruction(p[0], p[1], p[3], p[4])
+        return AST.Instruction(p[0], (p[1], p[3], p[4]))
 
     @_('INTEGER RANGE INTEGER')
     @_("ID RANGE ID")
@@ -75,7 +94,7 @@ class Mparser(Parser):
 
     @_("WHILE '(' condition ')' statement")
     def while_loop(self, p):
-        return AST.Instruction(p[0], p[2], p[4])
+        return AST.Instruction(p[0], (p[2], p[4]))
 
     @_("PRINT terms")
     def print_statement(self, p):
@@ -143,7 +162,6 @@ class Mparser(Parser):
     def terms(self, p):
         return p[0] if len(p) == 1 else ([p[0]] + p[2] if isinstance(p[2], list) else [p[0], p[2]])
 
-    @_("STRING")
     @_('reference')
     @_('numeric')
     @_('list')
@@ -168,36 +186,14 @@ class Mparser(Parser):
     def numeric(self, p):
         return AST.Numeric(p[0])
 
+    @_('STRING')
+    def string(self, p):
+        return AST.String(p[0])
+
     def error(self, p):
-        if p:
+        if p is not None:
             raise Exception(
                 f"Syntax error at line {p.lineno}: Unexpected token '{p.value}'")
         else:
             raise Exception(
                 f"Syntax error at end of input")
-
-
-    # @_('ADD')
-    # @_('SUBTRACT')
-    # @_('MULTIPLY_BY')
-    # @_('DIVIDE_BY')
-    # @_('ASSIGN')
-    # def assign_operator(self, p):
-    #     return p[0]
-
-    # @_('EQ')
-    # @_('LE')
-    # @_('LT')
-    # @_('GE')
-    # @_('GT')
-    # @_('NE')
-    # def relational_operator(self, p):
-    #     return p[0]
-
-    # @_('MATRIX_PLUS')
-    # @_('MATRIX_MINUS')
-    # @_('MATRIX_MUL')
-    # @_('MATRIX_DIV')
-    # def matrix_operator(self, p):
-    #     return p[0]
-

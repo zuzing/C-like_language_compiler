@@ -12,9 +12,9 @@ class VariableSymbol(Symbol):
 		super().__init__(name)
 		self.type = type_
 
-class VectorVariableSymbol(VariableSymbol):
-	def __init__(self, name: str, type_: TYPE, shape: tuple):
-		super().__init__(name, type_)
+
+class VectorType(TYPE):
+	def __init__(self, shape: tuple):
 		self.shape = shape
 
 	def shape(self):
@@ -23,7 +23,7 @@ class VectorVariableSymbol(VariableSymbol):
 
 class SymbolTable(object):
 
-	def __init__(self, parent_scope: 'SymbolTable' | None, name: str):
+	def __init__(self, parent_scope: 'SymbolTable' or None, name: str):
 		self.symbols: dict = {}
 		self.parent_scope = parent_scope
 		self.name = name
