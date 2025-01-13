@@ -1,9 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-
 class Node(object):
-    pass
+    def accept(self, visitor):
+        return visitor.visit(self)
 
 
 @dataclass
@@ -12,9 +12,47 @@ class Program(Node):
 
 
 @dataclass
+class Block(Program):
+    instructions: list
+
+
 class Instruction(Node):
-    instruction: str
-    args: tuple
+    def __init__(self, instruction, *args):
+        self.instruction = instruction
+        self.args = args
+
+
+class FunctionalInstruction(Instruction):
+    def __init__(self, instruction, *args):
+        self.instruction = instruction
+        self.args = args
+
+
+
+class WhileInstruction(Instruction):
+    def __init__(self, instruction, *args):
+        super().__init__(instruction, *args)
+        self.condition = args[0]
+        self.body = args[1]
+
+
+class ForLoopInstruction(Instruction):
+    def __init__(self, instruction, *args):
+        super().__init__(instruction, *args)
+        self.id = args[0]
+        self.range = args[1]
+        self.body = args[2]
+
+
+@dataclass
+class Range(Node):
+    start: int
+    end: int
+
+
+class FlowControlInstruction(Instruction):
+    def __init__(self, instruction, *args):
+        super().__init__(instruction, *args)
 
 
 @dataclass
@@ -25,15 +63,9 @@ class Ifstatement(Node):
 
 
 @dataclass
-class Range(Node):
-    start: int
-    end: int
-
-
-@dataclass
 class Assignment(Node):
-    id: str | Node
     op: str
+    id: Variable | Reference
     expr: Node
 
 
@@ -68,7 +100,6 @@ class Vector(Node):
                 shape.append(len(first_element))
                 find_shape(first_element)
 
-
         def check_dimension(dimension: int, subvector):
             """
             Checks if the dimensions of the subvectors agree.
@@ -78,7 +109,7 @@ class Vector(Node):
 
             for element in subvector:
                 if len(element) != shape[dimension]:
-                    raise Exception(f"Vector dimensions do not agree for vector: {self}")
+                    print(f"Vector dimensions do not agree for vector: {self}")
                 check_dimension(dimension + 1, element)
 
         find_shape(self)
@@ -87,14 +118,20 @@ class Vector(Node):
 
         return shape
 
+    def __len__(self):
+        return len(self.elements)
+
+    def __getitem__(self, index):
+        return self.elements[index]
+
 
 @dataclass
 class Reference(Node):
-    name: str
+    id: Variable
     index: Vector
 
 
-@dataclass
+@dataclass(frozen=True)
 class Variable(Node):
     name: str
 
@@ -102,6 +139,23 @@ class Variable(Node):
 @dataclass
 class Numeric(Node):
     value: int | float
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if '.' in str(value):
+            self._value = float(value)
+        else:
+            self._value = int(value)
+
+    def __int__(self):
+        return int(self._value)
+
+    def __float__(self):
+        return float(self._value)
 
     def __eq__(self, other):
         if isinstance(other, Numeric):

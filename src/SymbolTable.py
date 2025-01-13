@@ -2,8 +2,14 @@ class Symbol(object):
 	def __init__(self, name):
 		self.name = name
 
+	def __eq__(self, other):
+		return self.name == other.id
 
-UNKNOWN = None  # keyword to annotate unknown type or value
+	def __hash__(self):
+		return hash(self.name)
+
+
+
 TYPE = object # keyword to annotate type
 
 
@@ -20,6 +26,12 @@ class VectorType(TYPE):
 	def shape(self):
 		return self.shape
 
+	def __eq__(self, other):
+		return self.shape == other.shape
+
+	def __repr__(self):
+		return f"VectorType{self.shape}"
+
 
 class SymbolTable(object):
 
@@ -32,9 +44,9 @@ class SymbolTable(object):
 		self.symbols[symbol.name] = symbol
 
 	def get(self, name: str):
-		symbol = self.symbols[name]
+		symbol = self.symbols.get(name)
 		if symbol is not None:
 			return symbol
 		elif self.parent_scope is not None:
 			return self.parent_scope.get(name)
-		raise ValueError(f"Symbol {name} not in symbol table")
+		return None

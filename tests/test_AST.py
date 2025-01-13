@@ -25,9 +25,6 @@ class ASTTest(unittest.TestCase):
 			with open(f"./test_data/AST_expected/expected_output{i}.txt", "r") as file:
 				self.expected_output.append(file.read().strip())
 
-	def tearDown(self):
-		builtins.print = self.original_print
-
 	def monkey_patch_print(self, *args, **kwargs):
 		self.print_output = []
 		self.original_print = builtins.print
@@ -79,34 +76,55 @@ class ASTTest(unittest.TestCase):
 
 
 		def prepare_example1():
-			A = AST.Assignment("A", '=', AST.Instruction("zeros", '5'))
-			B = AST.Assignment("B", '=', AST.Instruction("ones", '7'))
-			I = AST.Assignment("I", '=', AST.Instruction("eye", '10'))
+			A = AST.Assignment(AST.Variable("A"), '=', AST.Instruction("zeros", AST.Numeric(5)))
+			B = AST.Assignment(AST.Variable("B"), '=', AST.Instruction("ones", AST.Numeric(7)))
+			I = AST.Assignment(AST.Variable("I"), '=', AST.Instruction("eye", AST.Numeric(10)))
 
 			E1 = AST.Assignment(
-				"E1",
+				AST.Variable("E1"),
 				'=',
 				AST.Vector([
-					AST.Vector(['1', '2', '3']),
-					AST.Vector(['4', '5', '6']),
-					AST.Vector(['7', '8', '9'])
+					AST.Vector([AST.Numeric(1), AST.Numeric(2), AST.Numeric(3)]),
+					AST.Vector([AST.Numeric(4), AST.Numeric(5), AST.Numeric(6)]),
+					AST.Vector([AST.Numeric(7), AST.Numeric(8), AST.Numeric(9)])
 				])
 			)
 
 			REF = AST.Assignment(
-				AST.Reference('A', AST.Vector(['1', '3'])),
+				AST.Reference(AST.Variable('A'), AST.Vector([AST.Numeric(1), AST.Numeric(3)])),
 				'=',
-				'0'
+				AST.Numeric(0)
 			)
 			return AST.Program([A, B, I, E1, REF])
 
 		def prepare_example2():
-			D1 = AST.Assignment("D1", '=', AST.BinaryOperation('.+', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
-			D2 = AST.Assignment("D2", '-=', AST.BinaryOperation('.-', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
-			D3 = AST.Assignment("D3", '*=', AST.BinaryOperation('.*', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
-			D4 = AST.Assignment("D4", '/=', AST.BinaryOperation('./', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
+			D1 = AST.Assignment(AST.Variable("D1"), '=', AST.BinaryOperation('.+', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
+			D2 = AST.Assignment(AST.Variable("D2"), '-=', AST.BinaryOperation('.-', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
+			D3 = AST.Assignment(AST.Variable("D3"), '*=', AST.BinaryOperation('.*', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
+			D4 = AST.Assignment(AST.Variable("D4"), '/=', AST.BinaryOperation('./', AST.Variable("A"), AST.UnaryOperation("'", AST.Variable("B"))))
 
 			return AST.Program([D1, D2, D3, D4])
+
+		def prepare_example3():
+			N = AST.Assignment(AST.Variable("N"), '=', AST.Numeric(10))
+			M = AST.Assignment(AST.Variable("M"), '=', AST.Numeric(10))
+
+			i = AST.Variable("i")
+			j = AST.Variable("j")
+			k = AST.Variable("k")
+
+			INNER_FOR = AST.Instruction("FOR", (j, AST.Range(AST.Numeric(1), AST.Variable("M")), AST.Instruction("PRINT", (i, j))))
+			OUTER_FOR = AST.Instruction("FOR", (i, AST.Range(AST.Numeric(1), AST.Variable("N")),
+										  [INNER_FOR]))
+			WHILE = AST.Instruction("WHILE", (AST.BinaryOperation('>', k, AST.Numeric(0)),
+											  [AST.Ifstatement(AST.BinaryOperation('<', k, AST.Numeric(5)),
+																			AST.Assignment(i, '=', AST.Numeric(1)),
+															AST.Ifstatement(AST.BinaryOperation('<', k, AST.Numeric(10)),
+																			AST.Assignment(i, '=', AST.Numeric(2)),
+																			AST.Assignment(i, '=', AST.Numeric(3)))),
+														AST.Assignment(k, '-=', AST.Numeric(1))]))
+
+			return AST.Program([N, M, OUTER_FOR, WHILE])
 
 		expected_tree1 = prepare_example1()
 		tokenized_text = self.scanner.tokenize(self.files[0])
@@ -114,12 +132,19 @@ class ASTTest(unittest.TestCase):
 
 		self.assertTrue(compare_trees(expected_tree1, tree), f"Trees are not equal.\n Expected:{vars(expected_tree1)}\nGot:{vars(tree)}")
 
+
 		expected_tree2 = prepare_example2()
 		tokenized_text = self.scanner.tokenize(self.files[1])
 		tree = self.parser.parse(tokenized_text)
 
 		self.assertTrue(compare_trees(expected_tree2, tree), f"Trees are not equal.\n Expected:{vars(expected_tree2)}\nGot:{vars(tree)}")
 
+
+		expected_tree3 = prepare_example3()
+		tokenized_text = self.scanner.tokenize(self.files[2])
+		tree = self.parser.parse(tokenized_text)
+
+		self.assertTrue(compare_trees(expected_tree3, tree), f"Trees are not equal.\n Expected:{vars(expected_tree3)}\nGot:{vars(tree)}")
 
 	def test_tree(self):
 		self.monkey_patch_print()
@@ -133,6 +158,8 @@ class ASTTest(unittest.TestCase):
 
 			output_as_string = "\n".join(self.print_output).strip()
 			self.assertEqual(expected, output_as_string, f"Expected:\n {expected}\n\n Got:\n {output_as_string}")
+
+		builtins.print = self.original_print
 
 
 

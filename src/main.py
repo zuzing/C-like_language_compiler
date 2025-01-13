@@ -24,3 +24,5 @@ if __name__ == '__main__':
 
     node_visitor = NodeVisitor()
     node_visitor.visit(ast)
+
+    # ast.accept(Interpreter())

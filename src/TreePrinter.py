@@ -108,7 +108,7 @@ class TreePrinter:
     @addToClass(AST.Reference)
     def printTree(self, indent=0):
         print(TreePrinter.indent_text("REF", indent))
-        TreePrinter.print(self.name, indent+1)
+        TreePrinter.print(self.id, indent+1)
         try:
             TreePrinter.print(self.index.elements, indent+1)  # index is a Vector, by accessing its elements we can omit printing VECTOR, making AST more readable
         except AttributeError:

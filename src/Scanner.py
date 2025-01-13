@@ -57,6 +57,7 @@ class Scanner(Lexer):
     ignore_whitespace = r' '
     ignore_comment = r'\#.*'
     ignore_newline = r'\n+'
+    ignore_tab = r'\t+'
 
     def ignore_newline(self, t):
         self.lineno += len(t.value)
