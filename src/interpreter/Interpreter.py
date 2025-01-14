@@ -197,7 +197,11 @@ class Interpreter(object):
     def visit(self, node):
         return self.memory_stack.get(node.name)
 
-    @when(AST.Numeric)
+    @when(AST.Integer)
+    def visit(self, node):
+        return node.value
+
+    @when(AST.Float)
     def visit(self, node):
         return node.value
 

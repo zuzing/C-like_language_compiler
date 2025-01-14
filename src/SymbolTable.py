@@ -27,7 +27,12 @@ class VectorType(TYPE):
 		return self.shape
 
 	def __eq__(self, other):
+		if not isinstance(other, VectorType):
+			return False
 		return self.shape == other.shape
+
+	def __hash__(self):
+		return hash(self.shape)
 
 	def __repr__(self):
 		return f"VectorType{self.shape}"

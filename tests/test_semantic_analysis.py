@@ -2,6 +2,7 @@ import unittest
 from Scanner import Scanner
 from Mparser import Mparser
 from NodeVisitor import NodeVisitor
+import warnings
 
 
 class TestSemanticAnalysis(unittest.TestCase):
@@ -18,18 +19,32 @@ class TestSemanticAnalysis(unittest.TestCase):
 
 		self.node_visitor = NodeVisitor()
 
-	def test_semantic_analysis(self):
-		for tree in self.trees:
-			self.node_visitor.visit(tree)
+		warnings.simplefilter('always', UserWarning)
 
-	def test_example1(self):
-		self.node_visitor.visit(self.trees[0])
+	def test_flow_control(self):
+		self.node_visitor.visit(self.trees[0]) # TODO: delete this
 
-	def test_example2(self):
+		expected_reasons = ["continue", "return", "break", "return", "return"]
+		with warnings.catch_warnings(record=True) as w:
+			self.node_visitor.visit(self.trees[0])
+			self.assertEqual(5, len(w))
+			for i in range(5):
+				assert expected_reasons[i] in str(w[i].message)
+
+	def test_matrix_creation(self):
 		self.node_visitor.visit(self.trees[1])
 
-	def test_example3(self):
+		with warnings.catch_warnings(record=True) as w:
+			self.node_visitor.visit(self.trees[1])
+			self.assertEqual(1, len(w))
+			assert "Vector dimensions do not match" in str(w[0].message)
+
+	def test_binary_operations(self):
 		self.node_visitor.visit(self.trees[2])
+
+		with warnings.catch_warnings(record=True) as w:
+			self.node_visitor.visit(self.trees[2])
+			self.assertEqual(6, len(w))
 
 
 if __name__ == '__main__':

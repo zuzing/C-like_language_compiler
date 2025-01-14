@@ -204,9 +204,12 @@ class Mparser(Parser):
         return AST.Variable(p[0])
 
     @_('INTEGER')
+    def numeric(self, p):
+        return AST.Integer(p[0])
+
     @_('FLOAT')
     def numeric(self, p):
-        return AST.Numeric(p[0])
+        return AST.Float(p[0])
 
     @_('STRING')
     def string(self, p):

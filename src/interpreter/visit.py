@@ -1,5 +1,10 @@
 import inspect
 
+"""
+Implementation of visitor pattern by Curtis Schlak.
+https://curtis.schlak.com/2013/06/20/follow-up-to-python-visitor-pattern.html
+"""
+
 __all__ = ['on', 'when']
 
 

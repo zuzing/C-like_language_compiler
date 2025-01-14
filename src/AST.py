@@ -1,5 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
+import warnings
+
 
 class Node(object):
     def accept(self, visitor):
@@ -24,8 +26,7 @@ class Instruction(Node):
 
 class FunctionalInstruction(Instruction):
     def __init__(self, instruction, *args):
-        self.instruction = instruction
-        self.args = args
+        super().__init__(instruction, *args)
 
 
 
@@ -86,7 +87,7 @@ class UnaryOperation(Node):
 class Vector(Node):
     elements: list
 
-    def shape(self) -> tuple:
+    def shape(self) -> tuple | None:
         shape = [len(self.elements)]
 
         def find_shape(subvector):
@@ -105,16 +106,20 @@ class Vector(Node):
             Checks if the dimensions of the subvectors agree.
             """
             if dimension == len(shape):
-                return
+                return  # dimensions match
 
             for element in subvector:
                 if len(element) != shape[dimension]:
-                    print(f"Vector dimensions do not agree for vector: {self}")
+                    raise Exception(f"Vector dimensions do not match for vector: {self}")
                 check_dimension(dimension + 1, element)
 
         find_shape(self)
         shape = tuple(shape)
-        check_dimension(1, self)
+        try:
+            check_dimension(1, self)
+        except Exception as e:
+            warnings.warn(str(e))
+            return None
 
         return shape
 
@@ -140,27 +145,28 @@ class Variable(Node):
 class Numeric(Node):
     value: int | float
 
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if '.' in str(value):
-            self._value = float(value)
-        else:
-            self._value = int(value)
-
     def __int__(self):
-        return int(self._value)
+        return int(self.value)
 
     def __float__(self):
-        return float(self._value)
+        return float(self.value)
 
     def __eq__(self, other):
         if isinstance(other, Numeric):
             return self.value == other.value
         return self.value == other
+
+    def __hash__(self):
+        return hash(self.value)
+
+
+class Integer(Numeric, int):
+    def __init__(self, value):
+        super().__init__(int(value))
+
+class Float(Numeric, float):
+    def __init__(self, value):
+        super().__init__(float(value))
 
 
 @dataclass

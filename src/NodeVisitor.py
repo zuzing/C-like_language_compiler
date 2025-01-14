@@ -1,3 +1,6 @@
+from typing import Optional, get_args
+import warnings
+
 import AST
 from SymbolTable import SymbolTable, VectorType, VariableSymbol, TYPE
 
@@ -31,6 +34,68 @@ class NodeVisitor(object):
 			for elem in node:
 				self.visit(elem)
 
+
+	def visit_VariableSymbol(self, node):
+		return node.type
+
+	def visit_Block(self, node):
+		self.symbol_table = SymbolTable(parent_scope=self.symbol_table, name="block")
+		self.visit(node.instructions)
+		self.symbol_table = self.symbol_table.parent_scope
+
+
+	def visit_FunctionalInstruction(self, node) -> TYPE:
+		ALLOWED_ARGUMENT_TYPES = {
+			'eye': [AST.Integer, Optional[AST.Integer]],
+			'zeros': [AST.Integer, Optional[AST.Integer]],
+			'ones': [AST.Integer, Optional[AST.Integer]],
+			'print': ['*'],
+		}
+		FUNCTION_RETURN_TYPES = {
+			'eye': lambda x, y=None: VectorType(shape=(x, y if y is not None else x)),
+			'zeros': lambda x, y=None: VectorType(shape=(x, y if y is not None else x)),
+			'ones': lambda x, y=None: VectorType(shape=(x, y if y is not None else x)),
+			'print': lambda *args: None,
+		}
+
+		arg_types = [arg for arg in node.args]
+		expected_types = ALLOWED_ARGUMENT_TYPES[node.instruction]
+
+		if '*' in expected_types:
+			return FUNCTION_RETURN_TYPES[node.instruction](*arg_types)
+
+		for i, expected_type in enumerate(expected_types):
+			if i >= len(arg_types):  # if fewer arguments than expected
+				if Optional[AST.Integer] in expected_types[i:]:  # TODO: make more general
+					continue
+				else:
+					warnings.warn(f"Missing required argument for instruction {node.instruction}")
+					return
+			if expected_type is Optional:
+				expected_type = AST.Integer
+
+			if not isinstance(arg_types[i], expected_type):
+				warnings.warn(f"Invalid argument type for instruction {node.instruction}: expected {expected_type}, got {type(arg_types[i])}")
+
+		if len(arg_types) > len(expected_types):
+			warnings.warn(f"Too many arguments provided for instruction {node.instruction}")
+			return
+
+		return FUNCTION_RETURN_TYPES[node.instruction](*node.args)
+
+
+	def visit_FlowControlInstruction(self, node) -> TYPE:
+		if self.current_loop == 0:
+			warnings.warn(f"Flow control instruction outside loop: {node.instruction}")
+		else:
+			if node.instruction == 'BREAK' or node.instruction == 'RETURN':
+				self.current_loop -= 1
+				self.symbol_table = self.symbol_table.parent_scope
+
+		if node.instruction == 'RETURN':
+			return self.visit(node.args[0])
+
+
 	def visit_Assignment(self, node):
 		TRANSLATION_TABLE = {
 			'+=': '+',
@@ -39,25 +104,21 @@ class NodeVisitor(object):
 			'/=': '/',
 		}
 
-		var_name = node.id.id
+		var_name = node.id.name
 		var_symbol = self.symbol_table.get(var_name)
 		if node.op == '=':
 			type_ = self.visit(node.expr)
 			if var_symbol is None:
 				self.symbol_table.put(VariableSymbol(name=var_name, type_=type_))
 			else:
-				if var_symbol.type != type_:
-					print(f"Type mismatch: {var_symbol.type} != {type_} for {var_name}")
+				var_symbol.type = type_
 		else:
 			if var_symbol is None:
-				print(f"Undefined variable: {var_name}")
+				warnings.warn(f"Undefined variable: {var_name}")
 			type_ = self.visit(AST.BinaryOperation(TRANSLATION_TABLE[node.op], AST.Variable(var_name), node.expr))
 			self.symbol_table.get(var_name).type = type_
 
-	def visit_Variable(self, node):
-		if self.symbol_table.get(node.id) is None:
-			raise Exception(f"Undefined variable: {node.id}")
-		return self.symbol_table.get(node.id).type
+
 
 	def visit_BinaryOperation(self, node) -> TYPE:
 		MATRIX_OPERATIONS = {
@@ -81,6 +142,8 @@ class NodeVisitor(object):
 			('*', AST.Numeric, AST.Numeric): AST.Numeric,
 			('/', AST.Numeric, AST.Numeric): AST.Numeric,
 			('*', AST.Numeric, VectorType): VectorType,
+			('*', AST.Numeric, AST.String): AST.String,
+			('*', AST.String, AST.Numeric): AST.String,
 			**MATRIX_OPERATIONS,
 		}
 
@@ -100,18 +163,20 @@ class NodeVisitor(object):
 					raise Exception(f"Vector dimensions must agree: {left_shape} != {right_shape}")
 				return VectorType(shape=left_shape)
 
+		def get_ancestor(cls):
+			# returns the first base class or None if no base exists
+			return cls.__bases__[0] if hasattr(cls, '__bases__') and cls.__bases__ else None
+
+
 		left_type = self.visit(node.left)
 		right_type = self.visit(node.right)
 
-		# if isinstance(node.left, AST.Variable):
-		#     left_type = self.symbol_table.get(node.left.name).type
-		# else:
-		#     left_type = node.left.__class__.__name__
-		#
-		# if isinstance(node.right, AST.Variable):
-		#     right_type = self.symbol_table.get(node.right.name).type
-		# else:
-		#     right_type = node.right.__class__.__name__
+		if left_type is AST.Integer or left_type is AST.Float:
+			left_type = get_ancestor(left_type)
+
+		if right_type is AST.Integer or right_type is AST.Float:
+			right_type = get_ancestor(right_type)
+
 
 		operation = (node.op, left_type, right_type)
 		if operation in ALLOWED_OPERATIONS.keys():
@@ -119,7 +184,7 @@ class NodeVisitor(object):
 				return vector_shapes(node.op, node.left, node.right)
 			return ALLOWED_OPERATIONS[operation]
 		else:
-			print(f"Unsupported operation: {left_type} {node.op} {right_type} for {node.left} {node.op} {node.right}")
+			warnings.warn(f"Unsupported operation: {left_type} {node.op} {right_type} for {node.left} {node.op} {node.right}")
 
 	def visit_UnaryOperation(self, node) -> TYPE:
 		self.visit(node.operand)
@@ -138,7 +203,7 @@ class NodeVisitor(object):
 		operation = (node.op, operand_type)
 
 		if operation not in ALLOWED_OPERATIONS.keys():
-			print(
+			warnings.warn(
 				f"Unsupported operation: {operand_type} {node.operand.__class__.__name__} for {node.op} {node.operand}")
 
 		if ALLOWED_OPERATIONS[operation] is VectorType:
@@ -149,99 +214,42 @@ class NodeVisitor(object):
 		else:
 			return ALLOWED_OPERATIONS[operation]
 
-	def visit_Instruction(self, node) -> TYPE or None:
-		ALLOWED_ARGUMENT_TYPES = {
-			'EYE': [int],
-			'ZEROS': [int],
-			'ONES': [int],
-		}
-		VECTOR_CREATION_INSTRUCTIONS = {
-			'EYE': lambda x: VectorType(shape=(x, x)),
-			'ZEROS': lambda x: VectorType(shape=(x, x)),
-			'ONES': lambda x: VectorType(shape=(x, x)),
-		}
-		SCOPE_CONTROL = {
-			'BREAK',
-			'CONTINUE',
-			'RETURN',
-		}
-
-		LOOP_INSTRUCTIONS = {
-			'FOR',
-			'WHILE',
-		}
-
-		if node.instruction in SCOPE_CONTROL:
-			if self.current_loop == 0:
-				print(f"Flow control instruction outside loop: {node.instruction}")
-			self.current_loop -= 1
-			self.symbol_table = self.symbol_table.parent_scope
-
-		if node.instruction in ALLOWED_ARGUMENT_TYPES.keys():
-			arg_types = [arg.__class__ for arg in node.args]
-			if arg_types != ALLOWED_ARGUMENT_TYPES[node.instruction]:
-				print(f"Invalid arguments for instruction {node.instruction}")
-
-			if node.instruction in VECTOR_CREATION_INSTRUCTIONS.keys():
-				return VECTOR_CREATION_INSTRUCTIONS[node.instruction](*node.args)
-
-		if node.instruction in LOOP_INSTRUCTIONS:
-			self.symbol_table = SymbolTable(parent_scope=self.symbol_table, name=node.instruction)
-			self.current_loop += 1
-			self.visit(node.args[0])
-			self.symbol_table = self.symbol_table.parent_scope
-			self.current_loop -= 1
-
-		if hasattr(node, 'args'):
-			if isinstance(node.args, tuple):
-				for arg in node.args:
-					self.visit(arg)
-			else:
-				self.visit(node.args)
-
 	def visit_Reference(self, node) -> TYPE:
-		self.visit(node.id)
-		self.visit(node.index)
+		id_type = self.visit(node.id)
+		index_types = [i.accept(self) for i in node.index]  #TODO: recursive visits
 
-		id = self.symbol_table.get(node.id.id)
-
-		if id.type is VectorType:
-			if len(node.index) > len(id.shape):
-				print(f"Index out of bounds: {node.id} {node.index} in {node}")
-			for i in range(len(id.shape)):  # check if indexes are integers and within bounds
-				if not isinstance(node.index[i], int):
-					print(f"Indexes must be an integers: {node.id} {node.index} in {node}")
-				if node.index[i] < 0 or node.index[i] >= id.shape[i]:
-					print(f"Index out of bounds: {node.id} {node.index} in {node}")
+		if isinstance(id_type, VectorType):
+			if len(index_types) > len(id_type.shape):
+				warnings.warn(f"Index out of bounds: {node.id} {node.index}")
+				return
+			for i in range(len(id_type.shape)):  # check if indexes are integers and within bounds
+				if not isinstance(node.index[i], AST.Integer):
+					warnings.warn(f"Indexes must be an integers: {node.id} {node.index} in {node}")
+					return
+				if node.index[i] < 0 or node.index[i] >= id_type.shape[i]:
+					warnings.warn(f"Index out of bounds: {node.id} {node.index} in {node}")
+					return
 
 			if len(node.index) == len(id.shape):
 				return AST.Numeric
 			else:
 				return VectorType(shape=id.shape[len(node.index):])
 		else:
-			print(f"Variable is not a vector: {node.id} in {node}")
-
-	def visit_Variable(self, node) -> TYPE:
-		return self.symbol_table.get(node.id).type
+			warnings.warn(f"Variable is not a vector: {node.id} in {node} is type {id_type}")
 
 	def visit_Vector(self, node) -> TYPE:
 		return VectorType(shape=(node.shape()))
 
-	def visit_Numeric(self, node) -> TYPE:
-		return AST.Numeric
+	def visit_Variable(self, node):
+		if self.symbol_table.get(node.name) is None:
+			warnings.warn(f"Variable referenced before assignment: {node.name}")
+		return self.symbol_table.get(node.name).type
+
+	def visit_Integer(self, node) -> TYPE:
+		return AST.Integer
+
+	def visit_Float(self, node) -> TYPE:
+		return AST.Float
 
 	def visit_String(self, node) -> TYPE:
 		return AST.String
-
-	# def generic_visit(self, node):        # Called if no explicit visitor function exists for a node.
-	#     if isinstance(node, list):
-	#         for elem in node:
-	#             self.visit(elem)
-	#     else:
-	#         for child in node.children:
-	#             if isinstance(child, list):
-	#                 for item in child:
-	#                     if isinstance(item, AST.Node):
-	#                         self.visit(item)
-	#             elif isinstance(child, AST.Node):
-	#                 self.visit(child)

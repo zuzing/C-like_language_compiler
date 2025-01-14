@@ -9,6 +9,7 @@ class TestInterpreter(unittest.TestCase):
 	def setUp(self):
 		self.scanner = Scanner()
 		self.parser = Mparser()
+		self.semantic = NodeVisitor()
 		self.interpreter = Interpreter()
 
 	def test_interpreter_fibonacci(self):
@@ -16,6 +17,7 @@ class TestInterpreter(unittest.TestCase):
 			text = file.read()
 		tokenized_text = self.scanner.tokenize(text)
 		ast = self.parser.parse(tokenized_text)
+		self.semantic.visit(ast)
 		ast.accept(self.interpreter)
 
 	def test_interpreter_matrix(self):
@@ -52,3 +54,7 @@ class TestInterpreter(unittest.TestCase):
 		tokenized_text = self.scanner.tokenize(text)
 		ast = self.parser.parse(tokenized_text)
 		ast.accept(self.interpreter)
+
+
+if __name__ == '__main__':
+	unittest.main()
