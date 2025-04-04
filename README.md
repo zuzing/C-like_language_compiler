@@ -1,5 +1,5 @@
 ---
-A compiler for a C-like language that supports code execution and printing of the program's abstract syntax tree (AST).
+An compiler for a language with C-like syntax that supports code execution and printing of the program's abstract syntax tree (AST).
 
 
 ---
