@@ -1,6 +1,6 @@
 import unittest
 from Scanner import Scanner
-from Mparser import Mparser
+from MParser import Mparser
 from NodeVisitor import NodeVisitor
 from interpreter.Interpreter import Interpreter
 

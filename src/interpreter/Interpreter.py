@@ -1,7 +1,7 @@
 import AST
 import SymbolTable
 from interpreter.Memory import *
-from interpreter.Exceptions import  *
+from interpreter.Exceptions import *
 from interpreter.visit import *
 import sys
 import operator

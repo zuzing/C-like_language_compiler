@@ -1,6 +1,6 @@
 import unittest
 from Scanner import Scanner
-from Mparser import Mparser
+from MParser import Mparser
 
 
 class ParserTest(unittest.TestCase):
