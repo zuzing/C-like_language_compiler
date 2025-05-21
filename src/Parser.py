@@ -1,9 +1,9 @@
-from sly import Parser
+from sly import Parser as slyParser
 from Scanner import Scanner
 import AST
 
 
-class Mparser(Parser):
+class Parser(slyParser):
     tokens = Scanner.tokens
 
     debugfile = None
@@ -156,7 +156,7 @@ class Mparser(Parser):
     def matrix_expr(self, p):
         return AST.BinaryOperation(p[1], p[0], p[2])
 
-    # here be reduce/reduce conflict
+    # here be reduce/reduce conflict ## EYE(2,3) / EYE(2+1) / EYE(2)
     @_("EYE '(' terms ')'")
     @_("ZEROS '(' terms ')'")
     @_("ONES '(' terms ')' ")

@@ -1,7 +1,6 @@
 import AST
-import SymbolTable
 from interpreter.Memory import *
-from interpreter.Exceptions import  *
+from interpreter.Exceptions import *
 from interpreter.visit import *
 import sys
 import operator
@@ -26,6 +25,7 @@ class Interpreter(object):
 
     @when(AST.Block)
     def visit(self, node):
+        # try finally
         self.memory_stack.push(Memory("Block"))
         for instruction in node.instructions:
             instruction.accept(self)
@@ -35,14 +35,8 @@ class Interpreter(object):
     @when(AST.FunctionalInstruction)
     def visit(self, node):
         if node.instruction == 'print':
-            # print(node.args.accept(self))
-            # print(*[arg.accept(self) for arg in node.args])
             print(" ".join(str(arg.accept(self)) for arg in node.args))
         elif node.instruction == 'zeros':
-            # n = []
-            # for arg in node.args:
-            #     val = arg.accept(self)
-            #     n.append(val)
             n = [arg.accept(self) for arg in node.args]
             if len(n) == 1:
                 n = (n[0], n[0])

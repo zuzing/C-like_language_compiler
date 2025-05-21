@@ -1,11 +1,16 @@
-from typing import Optional, get_args
+from typing import Optional
 import warnings
-
 import AST
 from SymbolTable import SymbolTable, VectorType, VariableSymbol, TYPE
 
 
-class NodeVisitor(object):
+class LexicalAnalyzer:
+	"""
+	prev. NodeVisitor
+	Lexical analysis is done by visiting nodes in the AST and checking if the operations are valid.
+	visit function finds the appropriate visit method for a node.
+	"""
+
 	def __init__(self):
 		self.symbol_table = SymbolTable(parent_scope=None, name="global")
 		self.current_loop = 0
@@ -25,7 +30,7 @@ class NodeVisitor(object):
 
 	def generic_visit(self, node):
 		"""Called if no explicit visitor function exists for a node.
-        It depends on visit function to continue the traversal."""
+        It depends on NodeVisitor.visit function to continue the traversal."""
 		if isinstance(node, AST.Node):
 			for child in self._get_children(node):
 				if isinstance(child, AST.Node) or isinstance(child, list):

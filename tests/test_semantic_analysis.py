@@ -1,6 +1,6 @@
 import unittest
 from Scanner import Scanner
-from Mparser import Mparser
+from Parser import Mparser
 from NodeVisitor import NodeVisitor
 import warnings
 
@@ -22,7 +22,7 @@ class TestSemanticAnalysis(unittest.TestCase):
 		warnings.simplefilter('always', UserWarning)
 
 	def test_flow_control(self):
-		self.node_visitor.visit(self.trees[0]) # TODO: delete this
+		self.node_visitor.visit(self.trees[0]) # TODO: delete this later
 
 		expected_reasons = ["continue", "return", "break", "return", "return"]
 		with warnings.catch_warnings(record=True) as w:
