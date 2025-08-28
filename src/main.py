@@ -1,6 +1,6 @@
 import sys
 from Scanner import Scanner
-from Mparser import Mparser
+from MParser import Mparser
 from TreePrinter import TreePrinter
 from NodeVisitor import NodeVisitor
 

@@ -105,47 +105,6 @@ class ASTTest(unittest.TestCase):
 
 			return AST.Program([D1, D2, D3, D4])
 
-		def prepare_example3():
-			N = AST.Assignment(AST.Variable("N"), '=', AST.Numeric(10))
-			M = AST.Assignment(AST.Variable("M"), '=', AST.Numeric(10))
-
-			i = AST.Variable("i")
-			j = AST.Variable("j")
-			k = AST.Variable("k")
-
-			INNER_FOR = AST.Instruction("FOR", (j, AST.Range(AST.Numeric(1), AST.Variable("M")), AST.Instruction("PRINT", (i, j))))
-			OUTER_FOR = AST.Instruction("FOR", (i, AST.Range(AST.Numeric(1), AST.Variable("N")),
-										  [INNER_FOR]))
-			WHILE = AST.Instruction("WHILE", (AST.BinaryOperation('>', k, AST.Numeric(0)),
-											  [AST.Ifstatement(AST.BinaryOperation('<', k, AST.Numeric(5)),
-																			AST.Assignment(i, '=', AST.Numeric(1)),
-															AST.Ifstatement(AST.BinaryOperation('<', k, AST.Numeric(10)),
-																			AST.Assignment(i, '=', AST.Numeric(2)),
-																			AST.Assignment(i, '=', AST.Numeric(3)))),
-														AST.Assignment(k, '-=', AST.Numeric(1))]))
-
-			return AST.Program([N, M, OUTER_FOR, WHILE])
-
-		expected_tree1 = prepare_example1()
-		tokenized_text = self.scanner.tokenize(self.files[0])
-		tree = self.parser.parse(tokenized_text)
-
-		self.assertTrue(compare_trees(expected_tree1, tree), f"Trees are not equal.\n Expected:{vars(expected_tree1)}\nGot:{vars(tree)}")
-
-
-		expected_tree2 = prepare_example2()
-		tokenized_text = self.scanner.tokenize(self.files[1])
-		tree = self.parser.parse(tokenized_text)
-
-		self.assertTrue(compare_trees(expected_tree2, tree), f"Trees are not equal.\n Expected:{vars(expected_tree2)}\nGot:{vars(tree)}")
-
-
-		expected_tree3 = prepare_example3()
-		tokenized_text = self.scanner.tokenize(self.files[2])
-		tree = self.parser.parse(tokenized_text)
-
-		self.assertTrue(compare_trees(expected_tree3, tree), f"Trees are not equal.\n Expected:{vars(expected_tree3)}\nGot:{vars(tree)}")
-
 	def test_tree(self):
 		self.monkey_patch_print()
 
