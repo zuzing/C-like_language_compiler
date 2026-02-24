@@ -4,12 +4,20 @@ import AST
 
 
 class Parser(slyParser):
+    """
+
+    """
+
     tokens = Scanner.tokens
 
     debugfile = None
 
     @classmethod
     def debug(cls, debugfile: str):
+        """
+        Extends the default SLY debug functionality by allowing to set the debug after the parser class has been created.
+        :param debugfile: path to debug file
+        """
         cls.debugfile = debugfile
         if hasattr(cls, '_grammar') and hasattr(cls, '_lrtable'):
             cls._apply_debugfile()

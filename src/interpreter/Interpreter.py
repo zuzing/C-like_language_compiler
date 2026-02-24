@@ -25,7 +25,7 @@ class Interpreter(object):
 
     @when(AST.Block)
     def visit(self, node):
-        # try finally
+        # TODO: try finally
         self.memory_stack.push(Memory("Block"))
         for instruction in node.instructions:
             instruction.accept(self)

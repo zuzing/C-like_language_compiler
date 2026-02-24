@@ -5,7 +5,7 @@ import warnings
 
 class Node(object):
     """
-
+    Base class for all AST nodes.
     """
     def accept(self, visitor):
         return visitor.visit(self)

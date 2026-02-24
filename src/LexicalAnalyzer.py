@@ -6,9 +6,10 @@ from SymbolTable import SymbolTable, VectorType, VariableSymbol, TYPE
 
 class LexicalAnalyzer:
 	"""
-	prev. NodeVisitor
-	Lexical analysis is done by visiting nodes in the AST and checking if the operations are valid.
-	visit function finds the appropriate visit method for a node.
+	Lexical analysis is done by recursively visiting nodes in the parse tree and checking if the operations are valid.
+
+	Visit function extends the functionality of AST classes by implementing the Visitor pattern.
+	To add custom behavior for a specific node type, define a method named visit_<NodeType>(self, node).
 	"""
 
 	def __init__(self):
@@ -22,15 +23,20 @@ class LexicalAnalyzer:
 			if not name.startswith("_")
 		]
 
-	def visit(self, node):
-		"""Visits a node by finding the appropriate visit method."""
+	def visit(self, node: AST.Node | list):
+		"""
+		Visits a node by finding the appropriate visit method.
+		Defaults to generic_visit if no explicit visitor function exists for a node.
+		"""
 		method = 'visit_' + node.__class__.__name__
 		visitor = getattr(self, method, self.generic_visit)
 		return visitor(node)
 
 	def generic_visit(self, node):
-		"""Called if no explicit visitor function exists for a node.
-        It depends on NodeVisitor.visit function to continue the traversal."""
+		"""
+		Called if no explicit visitor function exists for a node.
+        It relays on visit method to continue the traversal.
+        """
 		if isinstance(node, AST.Node):
 			for child in self._get_children(node):
 				if isinstance(child, AST.Node) or isinstance(child, list):
